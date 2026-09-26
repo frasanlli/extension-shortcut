@@ -1,60 +1,214 @@
+
 const arrayElements = ["button", "a", "input", "textarea"]; //, "select"];
 
-function procesarElementos() {
-let contadorA = 1;
-  let contadorB = 1;
+// --------------------------------------------------
+// CONTADORES
+// --------------------------------------------------
 
-  for (const element of arrayElements) {
-    let webElements = document.querySelectorAll(element);
-    webElements.forEach((element) => {
-      const name = element.getAttribute("name");
-      if (name) {
-        element.placeholder = " [" + name + "]";
-      } else {
-        const tagName = element.tagName.toLowerCase();
-        if (tagName === "a") {
-          element.textContent += " [a" + contadorA + "]";
-          contadorA++;
-        } else if (tagName === "button") {
-          element.textContent += " [b" + contadorB + "]";
-          contadorB++;
-        }
-      }
-    });
-  }
+let contadorA = 1;
+let contadorB = 1;
+let contadorC = 1;
+
+// --------------------------------------------------
+// FUNCIONES DE UTILIDAD
+// --------------------------------------------------
+
+function obtenerElementos() {
+
+    return arrayElements.flatMap(selector =>
+        [...document.querySelectorAll(selector)]
+    );
+
 }
 
+
+function obtenerTexto(element) {
+
+    return element.textContent.trim().toLowerCase();
+
+}
+
+
+function obtenerTagName(element) {
+
+    return element.tagName.toLowerCase();
+
+}
+
+
+// --------------------------------------------------
+// PROCESAMIENTO DE ELEMENTOS
+// --------------------------------------------------
+
+function añadirIdentificador(element) {
+
+    // Evitar procesar el mismo elemento dos veces
+    if (element.dataset.extensionProcesado === "true") {
+        return;
+    }
+    const tagName = obtenerTagName(element);
+
+    if (tagName === "input" || tagName === "textarea") {
+
+        element.placeholder = "[i" + contadorC +"]" ;
+        contadorC++
+
+    } else if (tagName === "a") {
+
+        element.textContent += "[a" + contadorA + "]";
+        contadorA++;
+
+    } else if (tagName === "button") {
+
+        element.textContent += " [b" + contadorB + "]";
+        contadorB++;
+
+    }
+
+    // Marcar como procesado
+    element.dataset.extensionProcesado = "true";
+
+}
+
+
+function procesarElementos() {
+
+    const elementos = obtenerElementos();
+
+    elementos.forEach(element => {
+        añadirIdentificador(element);
+    });
+
+}
+
+
+// --------------------------------------------------
+// BÚSQUEDA
+// --------------------------------------------------
+
+function coincideConBuscado(element, buscado) {
+
+    const texto = obtenerTexto(element);
+
+    const matches = [
+        ...texto.matchAll(/\[([^\]]+)\]/g)
+    ];
+
+    const identificadores = matches.map(match =>
+        match[1].toLowerCase()
+    );
+
+    return (
+        texto === buscado ||
+        identificadores.includes(buscado)
+    );
+
+}
+
+
+function buscarElemento(buscado) {
+
+    const elementos = obtenerElementos();
+
+    return elementos.find(element =>
+        coincideConBuscado(element, buscado)
+    );
+
+}
+
+
+// --------------------------------------------------
+// DOM + OBSERVER
+// --------------------------------------------------
+
 document.addEventListener("DOMContentLoaded", function () {
-  procesarElementos();
+
+    // Procesar elementos iniciales
+    procesarElementos();
+
+    console.log("DOM cargado");
+
+
+    // Observer para elementos añadidos posteriormente
+    const observer = new MutationObserver(function (mutations) {
+
+        let hayNuevosElementos = false;
+
+        for (const mutation of mutations) {
+
+            if (mutation.addedNodes.length > 0) {
+
+                hayNuevosElementos = true;
+                break;
+
+            }
+
+        }
+
+        if (hayNuevosElementos) {
+
+            procesarElementos();
+
+        }
+
+    });
+
+
+    observer.observe(document.body, {
+
+        childList: true,
+        subtree: true
+
+    });
+
 });
+
+
+// --------------------------------------------------
+// TECLADO
+// --------------------------------------------------
 
 let buffer = "";
 
 document.addEventListener("keydown", function (event) {
-  if (event.key === "Enter") {
-    for (const element of arrayElements) {
-      let webElement = [...document.querySelectorAll(element)].find((b) => {
-        const texto = b.textContent.trim().toLowerCase();
-        const name = b.getAttribute("name")?.toLowerCase();
+
+    if (event.key === "Enter") {
+
         const buscado = buffer.toLowerCase();
-        const matches = [...texto.matchAll(/\[([^\]]+)\]/g)];
-        return (
-          texto === buscado ||
-          name === buscado ||
-          matches.some((match) => match[1].toLowerCase() === buscado)
-        );
-      });
-      if (webElement) {
-        webElement.click();
-        console.log(buffer.toLowerCase() + " pulsado");
-        break;
-      }
+
+        const webElement = buscarElemento(buscado);
+
+        if (webElement) {
+
+            webElement.click();
+
+            console.log(buscado + " pulsado");
+
+        } else {
+
+            console.log(buscado + " no encontrado");
+
+        }
+
+        buffer = "";
+
+        return;
     }
-    console.log(buffer.toLowerCase() + " no encontrado");
-    buffer = "";
-  } else if (event.key === "Backspace") {
-    buffer = buffer.slice(0, -1);
-  } else {
-    buffer += event.key;
-  }
+
+
+    if (event.key === "Backspace") {
+
+        buffer = buffer.slice(0, -1);
+
+        return;
+    }
+
+
+    if (event.key.length === 1) {
+
+        buffer += event.key;
+
+    }
+
 });
+

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Buscador por teclado",
+  "version": "1.0",
+  "description": "Pulsa Enter para activar elementos de la página según el texto escrito.",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["keydown.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

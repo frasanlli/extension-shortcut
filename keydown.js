@@ -1,214 +1,182 @@
-
-const arrayElements = ["button", "a", "input", "textarea"]; //, "select"];
+const arrayElements = ["button", "a", "input", "textarea", "select"];
 
 // --------------------------------------------------
-// CONTADORES
+// COUNTERS
 // --------------------------------------------------
 
 let contadorA = 1;
 let contadorB = 1;
 let contadorC = 1;
+let contadorD = 1;
 
 // --------------------------------------------------
-// FUNCIONES DE UTILIDAD
+// UTILITY FUNCTIONS
 // --------------------------------------------------
 
 function obtenerElementos() {
-
-    return arrayElements.flatMap(selector =>
-        [...document.querySelectorAll(selector)]
-    );
-
+  return arrayElements.flatMap((selector) => [
+    ...document.querySelectorAll(selector),
+  ]);
 }
-
 
 function obtenerTexto(element) {
+  const tagName = element.tagName.toLowerCase();
 
-    return element.textContent.trim().toLowerCase();
+  if (tagName === "input" || tagName === "textarea") {
+    return element.placeholder;
+  }
 
+  if (tagName === "select") {
+    return element.getAttribute("name");
+  }
+
+  return element.textContent.trim().toLowerCase();
 }
-
 
 function obtenerTagName(element) {
-
-    return element.tagName.toLowerCase();
-
+  return element.tagName.toLowerCase();
 }
 
-
 // --------------------------------------------------
-// PROCESAMIENTO DE ELEMENTOS
+// ELEMENT PROCESSING
 // --------------------------------------------------
 
 function añadirIdentificador(element) {
+  // Prevent the same element from being processed twice
+  if (element.dataset.extensionProcesado === "true") {
+    return;
+  }
+  const tagName = obtenerTagName(element);
 
-    // Evitar procesar el mismo elemento dos veces
-    if (element.dataset.extensionProcesado === "true") {
-        return;
-    }
-    const tagName = obtenerTagName(element);
-
-    if (tagName === "input" || tagName === "textarea") {
-
-        element.placeholder = "[i" + contadorC +"]" ;
-        contadorC++
-
-    } else if (tagName === "a") {
-
-        element.textContent += "[a" + contadorA + "]";
-        contadorA++;
-
-    } else if (tagName === "button") {
-
-        element.textContent += " [b" + contadorB + "]";
-        contadorB++;
-
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") {
+    if (tagName === "select") {
+        const etiqueta = document.createElement("span");
+        element.setAttribute("name", "[s" + contadorD + "]");
+        etiqueta.textContent = " [s" + contadorD + "]";
+        element.insertAdjacentElement("afterend", etiqueta);
+        contadorD++;
+    }else{
+        element.placeholder = "[i" + contadorC + "]";
+        contadorC++;
     }
 
-    // Marcar como procesado
-    element.dataset.extensionProcesado = "true";
+  } else if (tagName === "a") {
+    element.textContent += "[a" + contadorA + "]";
+    contadorA++;
+  } else if (tagName === "button") {
+    element.textContent += " [b" + contadorB + "]";
+    contadorB++;
+  }
 
+  // Mark as processed
+  element.dataset.extensionProcesado = "true";
 }
-
 
 function procesarElementos() {
+  const elementos = obtenerElementos();
 
-    const elementos = obtenerElementos();
-
-    elementos.forEach(element => {
-        añadirIdentificador(element);
-    });
-
+  elementos.forEach((element) => {
+    añadirIdentificador(element);
+  });
 }
 
-
 // --------------------------------------------------
-// BÚSQUEDA
+// SEARCH
 // --------------------------------------------------
 
 function coincideConBuscado(element, buscado) {
+  const texto = obtenerTexto(element);
 
-    const texto = obtenerTexto(element);
+  const matches = [...texto.matchAll(/\[([^\]]+)\]/g)];
 
-    const matches = [
-        ...texto.matchAll(/\[([^\]]+)\]/g)
-    ];
+  const identificadores = matches.map((match) => match[1].toLowerCase());
 
-    const identificadores = matches.map(match =>
-        match[1].toLowerCase()
-    );
-
-    return (
-        texto === buscado ||
-        identificadores.includes(buscado)
-    );
-
+  return texto === buscado || identificadores.includes(buscado);
 }
-
 
 function buscarElemento(buscado) {
+  const elementos = obtenerElementos();
 
-    const elementos = obtenerElementos();
-
-    return elementos.find(element =>
-        coincideConBuscado(element, buscado)
-    );
-
+  return elementos.find((element) => coincideConBuscado(element, buscado));
 }
-
 
 // --------------------------------------------------
 // DOM + OBSERVER
 // --------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Process initial elements
+  procesarElementos();
 
-    // Procesar elementos iniciales
-    procesarElementos();
+  console.log("DOM cargado");
 
-    console.log("DOM cargado");
+  // Observer for elements added later
+  const observer = new MutationObserver(function (mutations) {
+    let hayNuevosElementos = false;
 
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length > 0) {
+        hayNuevosElementos = true;
+        break;
+      }
+    }
 
-    // Observer para elementos añadidos posteriormente
-    const observer = new MutationObserver(function (mutations) {
+    if (hayNuevosElementos) {
+      procesarElementos();
+    }
+  });
 
-        let hayNuevosElementos = false;
-
-        for (const mutation of mutations) {
-
-            if (mutation.addedNodes.length > 0) {
-
-                hayNuevosElementos = true;
-                break;
-
-            }
-
-        }
-
-        if (hayNuevosElementos) {
-
-            procesarElementos();
-
-        }
-
-    });
-
-
-    observer.observe(document.body, {
-
-        childList: true,
-        subtree: true
-
-    });
-
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 });
 
-
 // --------------------------------------------------
-// TECLADO
+// KEYBOARD
 // --------------------------------------------------
 
 let buffer = "";
 
 document.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    const buscado = buffer.toLowerCase();
 
-    if (event.key === "Enter") {
+    const webElement = buscarElemento(buscado);
 
-        const buscado = buffer.toLowerCase();
+    if (webElement) {
+        console.log(webElement.tagName.toLowerCase());
 
-        const webElement = buscarElemento(buscado);
+      if (webElement.tagName.toLowerCase() === "input" || webElement.tagName.toLowerCase() === "textarea") {
+        webElement.focus();
+        console.log(buscado + " foco");
 
-        if (webElement) {
+      } else if (webElement.tagName.toLowerCase() === "select") {
+        webElement.showPicker();
+        console.log(buscado + " select");
 
-            webElement.click();
+      } else {
+        webElement.click();
+        console.log(buscado + " pulsado");
 
-            console.log(buscado + " pulsado");
-
-        } else {
-
-            console.log(buscado + " no encontrado");
-
-        }
-
-        buffer = "";
-
-        return;
+      }
+    } else {
+      console.log(buscado + " no encontrado");
     }
 
+    buffer = "";
 
-    if (event.key === "Backspace") {
+    return;
+  }
 
-        buffer = buffer.slice(0, -1);
+  if (event.key === "Backspace") {
+    buffer = buffer.slice(0, -1);
 
-        return;
-    }
+    return;
+  }
 
-
-    if (event.key.length === 1) {
-
-        buffer += event.key;
-
-    }
-
+  if (event.key.length === 1) {
+    buffer += event.key;
+  }
 });
 

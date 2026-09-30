@@ -6,8 +6,8 @@ const arrayElements = ["button", "a", "input", "textarea", "select"];
 
 let contadorA = 1;
 let contadorB = 1;
-let contadorC = 1;
-let contadorD = 1;
+let contadorI = 1;
+let contadorS = 1;
 
 // --------------------------------------------------
 // UTILITY FUNCTIONS
@@ -41,6 +41,28 @@ function obtenerTagName(element) {
 // ELEMENT PROCESSING
 // --------------------------------------------------
 
+function checkTimeLink(text) {
+  const timePattern = /^\d+:\d{2}$/
+  if (text.includes(timePattern)) {
+    if (document.title.includes("youtube")) {
+      return true
+    }
+  }
+  return false
+}
+
+function createSpan(element, letter, contador){
+  const etiqueta = document.createElement("span");
+  element.setAttribute("name", "[" + letter + contador + "]");
+  etiqueta.textContent = " [" + letter + contador + "]";
+  if (letter === "a") {
+    element.appendChild(etiqueta);
+  }else{
+    element.insertAdjacentElement("afterend", etiqueta);
+  }
+
+}
+
 function añadirIdentificador(element) {
   // Prevent the same element from being processed twice
   if (element.dataset.extensionProcesado === "true") {
@@ -50,19 +72,21 @@ function añadirIdentificador(element) {
 
   if (tagName === "input" || tagName === "textarea" || tagName === "select") {
     if (tagName === "select") {
-        const etiqueta = document.createElement("span");
-        element.setAttribute("name", "[s" + contadorD + "]");
-        etiqueta.textContent = " [s" + contadorD + "]";
-        element.insertAdjacentElement("afterend", etiqueta);
-        contadorD++;
+        createSpan(element,"s", contadorS);
+        contadorS++;
     }else{
-        element.placeholder = "[i" + contadorC + "]";
-        contadorC++;
+        element.placeholder = "[i" + contadorI + "]";
+        contadorI++;
     }
 
   } else if (tagName === "a") {
-    element.textContent += "[a" + contadorA + "]";
-    contadorA++;
+    if (element.textContent.trim() === ""){ //|| checkTimeLink(element.textContent.trim())) {
+      createSpan(element,"a", contadorA);
+      contadorA++;
+    }else{
+      element.textContent += "[a" + contadorA + "]";
+      contadorA++;
+    }
   } else if (tagName === "button") {
     element.textContent += " [b" + contadorB + "]";
     contadorB++;
@@ -78,6 +102,55 @@ function procesarElementos() {
   elementos.forEach((element) => {
     añadirIdentificador(element);
   });
+}
+
+// --------------------------------------------------
+// VISUALIZATION
+// --------------------------------------------------
+
+function obtenerFondo() {
+    let colorReal = document.body;
+
+    while (colorReal) {
+        const color = getComputedStyle(colorReal).backgroundColor;
+
+        if (color !== "rgba(0, 0, 0, 0)" &&
+            color !== "transparent") {
+            return color;
+        }
+
+        colorReal = colorReal.parentElement;
+    }
+
+    return "rgb(255, 255, 255)";
+}
+
+function actualizarDiv(buffer) {
+    const div = document.getElementById("ShortcutBuffer");
+    const bgColor = obtenerFondo();
+    console.log("Color de fondo del body: " + bgColor);
+
+    // Extraer RGB
+    const match = bgColor.match(/\d+/g);
+    const [r, g, b] = match ? match.map(Number) : [255, 255, 255];
+
+    // Invertir RGB
+    const inverted = `rgb(${255 - r}, ${255 - g}, ${255 - b})`;
+
+    Object.assign(div.style, {
+        position: "fixed",
+        bottom: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        padding: "12px",
+        backgroundColor: inverted,
+        color: bgColor,
+        borderRadius: "8px",
+        zIndex: "9999",
+        fontFamily: "Arial, sans-serif"
+    });
+
+    div.textContent = buffer;
 }
 
 // --------------------------------------------------
@@ -104,7 +177,20 @@ function buscarElemento(buscado) {
 // DOM + OBSERVER
 // --------------------------------------------------
 
-document.addEventListener("DOMContentLoaded", function () {
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", (event) => {
+      console.log("DOM fully loaded and parsed");
+    });
+} else {
+    iniciar();
+}
+
+function iniciar() {
+  const div = document.createElement("div");
+  div.id = "ShortcutBuffer";
+  document.body.appendChild(div);
+
   // Process initial elements
   procesarElementos();
 
@@ -130,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
     childList: true,
     subtree: true,
   });
-});
+};
 
 // --------------------------------------------------
 // KEYBOARD
@@ -138,35 +224,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
 let buffer = "";
 
-document.addEventListener("keydown", function (event) {
-  if (event.key === "Enter") {
-    const buscado = buffer.toLowerCase();
+function checkBuffer(buffer) {
+  const patron = /^[A-Za-z]\d+$/;
 
-    const webElement = buscarElemento(buscado);
-
-    if (webElement) {
-        console.log(webElement.tagName.toLowerCase());
-
-      if (webElement.tagName.toLowerCase() === "input" || webElement.tagName.toLowerCase() === "textarea") {
-        webElement.focus();
-        console.log(buscado + " foco");
-
-      } else if (webElement.tagName.toLowerCase() === "select") {
-        webElement.showPicker();
-        console.log(buscado + " select");
-
-      } else {
-        webElement.click();
-        console.log(buscado + " pulsado");
-
-      }
-    } else {
-      console.log(buscado + " no encontrado");
-    }
-
+  if (!buffer.match(patron) && buffer.length > 3) {
     buffer = "";
+  }
+  return buffer;
+}
 
-    return;
+function tryBuffer(){
+  const buscado = buffer.toLowerCase();
+  const webElement = buscarElemento(buscado);
+
+  if (webElement) {
+      console.log(webElement.tagName.toLowerCase());
+
+    if (webElement.tagName.toLowerCase() === "input" || webElement.tagName.toLowerCase() === "textarea") {
+      webElement.focus();
+      console.log(buscado + " foco");
+
+    } else if (webElement.tagName.toLowerCase() === "select") {
+      webElement.showPicker();
+      console.log(buscado + " select");
+
+    } else {
+      webElement.click();
+      console.log(buscado + " pulsado");
+
+    }
+  } else {
+    console.log(buscado + " no encontrado");
+  }
+
+  buffer = "";
+  actualizarDiv(buffer)
+
+  return;
+
+}
+
+document.addEventListener("keydown", function (event) {
+  console.log("Tecla presionada: " + event.key);
+  if (buffer.length > 3) {
+    buffer = checkBuffer(buffer);
+  }
+
+  if (event.key === "Control") {
+    tryBuffer()
   }
 
   if (event.key === "Backspace") {
@@ -177,6 +282,7 @@ document.addEventListener("keydown", function (event) {
 
   if (event.key.length === 1) {
     buffer += event.key;
+    actualizarDiv(buffer)
   }
 });
 

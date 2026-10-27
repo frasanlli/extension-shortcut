@@ -6,8 +6,10 @@ const arrayElements = ["button", "a", "input", "textarea", "select"];
 
 let contadorA = 1;
 let contadorB = 1;
+let contadorC = 1;
 let contadorI = 1;
 let contadorS = 1;
+let contadorV = 1;
 
 // --------------------------------------------------
 // UTILITY FUNCTIONS
@@ -26,7 +28,7 @@ function obtenerTexto(element) {
     return element.placeholder;
   }
 
-  if (tagName === "select") {
+  if (tagName === "select" || tagName === "a") {
     return element.getAttribute("name");
   }
 
@@ -52,15 +54,24 @@ function checkTimeLink(text) {
 }
 
 function createSpan(element, letter, contador){
-  const etiqueta = document.createElement("span");
-  element.setAttribute("name", "[" + letter + contador + "]");
-  etiqueta.textContent = " [" + letter + contador + "]";
-  if (letter === "a") {
-    element.appendChild(etiqueta);
-  }else{
-    element.insertAdjacentElement("afterend", etiqueta);
+  if (element.querySelector("span")) {
+      console.log ("Ya existe un span en el elemento ");
+      element.querySelector("span").textContent += " [" + letter + contador + "]";
+  } else {
+    const etiqueta = document.createElement("span");
+    element.setAttribute("name", "[" + letter + contador + "]");
+    etiqueta.textContent = " [" + letter + contador + "]";
+    if (letter === "a") {
+      element.appendChild(etiqueta);
+    }else{
+      element.insertAdjacentElement("afterend", etiqueta);
+    }
   }
+}
 
+function addPlaceholder(element, letter, contador) {
+  const placeholder = "[" + letter + contador + "]";
+  element.placeholder = placeholder;
 }
 
 function añadirIdentificador(element) {
@@ -70,25 +81,52 @@ function añadirIdentificador(element) {
   }
   const tagName = obtenerTagName(element);
 
-  if (tagName === "input" || tagName === "textarea" || tagName === "select") {
-    if (tagName === "select") {
-        createSpan(element,"s", contadorS);
-        contadorS++;
-    }else{
-        element.placeholder = "[i" + contadorI + "]";
-        contadorI++;
-    }
+  if (tagName === "select") {
+      createSpan(element,"s", contadorS);
+      contadorS++;
+  }
 
-  } else if (tagName === "a") {
-    if (element.textContent.trim() === ""){ //|| checkTimeLink(element.textContent.trim())) {
-      createSpan(element,"a", contadorA);
-      contadorA++;
+  if (tagName === "input" || tagName === "textarea") {
+
+    if (element.type === "checkbox" || element.type === "radio") {
+      addPlaceholder(element, "c", contadorC);
+      createSpan(element,"c", contadorC);
+      contadorC++;
     }else{
-      element.textContent += "[a" + contadorA + "]";
+      addPlaceholder(element, "i", contadorI);
+      contadorI++;
+    }
+  }
+
+  if (tagName === "a") {
+    if (element.textContent.trim() === ""){ //|| checkTimeLink(element.textContent.trim())) {
+      createSpan(element, "a", contadorA);
+      contadorA++;
+    }else if (element.href.includes("watch")) { // video
+      createSpan(element,"v", contadorV);
+      contadorV++;
+    }else{
+      element.setAttribute("name", "[a" + contadorA + "]");
+      if (element.querySelector("span")) {
+        element.querySelector("span").textContent += " [a" + contadorA + "]";
+      } else {
+        element.textContent += "[a" + contadorA + "]";
+      }
       contadorA++;
     }
-  } else if (tagName === "button") {
-    element.textContent += " [b" + contadorB + "]";
+  }
+
+  if (tagName === "button") {
+    if (element.querySelector("span")) {
+      const span = element.querySelector("span");
+      if(span.querySelector("img") || span.querySelector("svg")) {
+        createSpan(element, "b", contadorB);
+      }else{
+        span.textContent += " [b" + contadorB + "]";
+      }
+    } else {
+      element.textContent += " [b" + contadorB + "]";
+    }
     contadorB++;
   }
 
@@ -159,6 +197,7 @@ function actualizarDiv(buffer) {
 
 function coincideConBuscado(element, buscado) {
   const texto = obtenerTexto(element);
+  console.log(element)
 
   const matches = [...texto.matchAll(/\[([^\]]+)\]/g)];
 
@@ -240,7 +279,7 @@ function tryBuffer(){
   if (webElement) {
       console.log(webElement.tagName.toLowerCase());
 
-    if (webElement.tagName.toLowerCase() === "input" || webElement.tagName.toLowerCase() === "textarea") {
+    if (webElement.tagName.toLowerCase() === "textarea") {
       webElement.focus();
       console.log(buscado + " foco");
 
@@ -248,7 +287,7 @@ function tryBuffer(){
       webElement.showPicker();
       console.log(buscado + " select");
 
-    } else {
+    } else { //"input" "button" "a"
       webElement.click();
       console.log(buscado + " pulsado");
 
@@ -282,7 +321,8 @@ document.addEventListener("keydown", function (event) {
 
   if (event.key.length === 1) {
     buffer += event.key;
-    actualizarDiv(buffer)
+
   }
+  actualizarDiv(buffer)
 });
 

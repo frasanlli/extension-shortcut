@@ -315,8 +315,6 @@ document.addEventListener("keydown", function (event) {
 
   if (event.key === "Backspace") {
     buffer = buffer.slice(0, -1);
-
-    return;
   }
 
   if (event.key.length === 1) {

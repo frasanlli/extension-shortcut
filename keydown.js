@@ -116,7 +116,7 @@ function añadirIdentificador(element) {
     }
   }
 
-  if (tagName === "button") {
+  if (tagName === "button") { //problem with svg inside them
     if (element.querySelector("span")) {
       const span = element.querySelector("span");
       if(span.querySelector("img") || span.querySelector("svg")) {

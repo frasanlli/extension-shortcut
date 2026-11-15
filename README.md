@@ -2,7 +2,7 @@ This extension allows to use keyboard shortcuts to interact with lots of html el
 
 Original:
 
-<img width="1920" height="1080" alt="imagen" src="https://github.com/user-attachments/assets/eafaada0-183e-434a-8683-768efbebcd19" />
+<img width="1056" height="806" alt="imagen" src="https://github.com/user-attachments/assets/e5cb06f6-55dd-444d-b14c-614b9b925fbd" />
 
 
 With addon appear visible shortcuts for <input> <a> <select> <checkbox> and <button>:

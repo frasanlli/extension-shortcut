@@ -5,7 +5,7 @@ Original:
 <img width="1056" height="806" alt="imagen" src="images/floating_input.PNG" />
 
 
-With addon appear visible shortcuts for <input> <a> <select> <checkbox> and <button>:
+With addon appear visible shortcuts for input, a, select, checkbox and button:
 
 <img width="1005" height="819" alt="imagen" src="images/original.PNG" />
 
